@@ -1,0 +1,11 @@
+{
+  "schema": "glaciereq.promotion-authority-grant.v1",
+  "repository": "GlacierEQ/cognition-execution-checkpoint-lattice",
+  "source_sha": "a21733234428c6966b546c0d06c4f18cbef42844f078794e128229e3ed39e971",
+  "proof_receipt_digest": "70c932df48dda6aa8831b92f84544ee566b087965cdbc940393e619544fbd301",
+  "not_after": 1788948645.61133,
+  "mac": "a90f4eea17903de478309cdffd918c6e28e5116bea0dac1620b03f797e621f14",
+  "issuer": "local_operator_promotion_authority",
+  "verified": true,
+  "secret_ref": "src/promotion_authority.py::LOCAL_OPERATOR_SECRET"
+}

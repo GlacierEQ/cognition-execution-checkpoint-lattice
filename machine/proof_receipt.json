@@ -1,0 +1,31 @@
+{
+  "schema": "glaciereq.proof-receipt.v1",
+  "repository": "GlacierEQ/cognition-execution-checkpoint-lattice",
+  "source_sha": "a21733234428c6966b546c0d06c4f18cbef42844f078794e128229e3ed39e971",
+  "proof_id": "elite-cognition-execution-checkpoint-lattice-1786356645",
+  "environment": {
+    "python": "/Users/kcbflux/.local/bin/python3.11",
+    "PYTHONPATH": "/Users/kcbflux/GlacierEQ_Swarm/job-app/repos/cognition-execution-checkpoint-lattice:/Users/kcbflux/GlacierEQ_Swarm/job-app/repos/cognition-execution-checkpoint-lattice/src",
+    "entry": "unittest"
+  },
+  "tests": [
+    "/Users/kcbflux/.local/bin/python3.11 -m unittest discover -s tests -v (x2)"
+  ],
+  "adversarial_tests": [
+    "tests/test_adversarial.py"
+  ],
+  "runtime": {
+    "operate": "scripts/operate.py (x2)",
+    "dual_run_ok": true,
+    "proof_dual_run_ok": true
+  },
+  "result": "PASS",
+  "limitations": [
+    "not production deployed",
+    "reference implementation only"
+  ],
+  "timestamp": "2026-08-10T10:10Z",
+  "artifact_hashes": {
+    "operability_receipt": "7822a8e6edfa2e9c7b10f70af96b47cdfeb102fba32f2393b7503475dfaf5d57"
+  }
+}

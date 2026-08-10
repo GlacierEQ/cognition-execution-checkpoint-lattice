@@ -1,0 +1,12 @@
+{
+  "schema": "glaciereq.repo-capabilities.v1",
+  "repository": "GlacierEQ/cognition-execution-checkpoint-lattice",
+  "capabilities": [
+    {
+      "id": "execution-checkpoint-lattice",
+      "name": "Execution Checkpoint Lattice",
+      "status": "SCAFFOLD",
+      "module": "src/execution_checkpoint_lattice.py"
+    }
+  ]
+}
