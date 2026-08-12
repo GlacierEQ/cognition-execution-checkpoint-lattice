@@ -2,49 +2,68 @@
 
 Independent GlacierEQ portfolio exhibit aligned to **Cognition** operating themes.
 
-> **Not affiliated.** This repository is not affiliated with, endorsed by, employed by, or deployed at Cognition.
-> No proprietary access, production deployment, customer impact, or company partnership is claimed.
+> **Not affiliated.** This repository is not affiliated with, endorsed by, employed by, or deployed at Cognition. No proprietary access, production deployment, customer impact, or company partnership is claimed.
 
-## Bottleneck (GlacierEQ hypothesis)
+## Problem
 
-reliably carrying software tasks across long horizons where environment setup, hidden dependencies, ambiguous requirements, and partial failures compound
+Long-horizon software tasks fail expensively when environment setup, hidden dependencies, ambiguous requirements, and partial failures compound. Restarting the entire trajectory wastes work and can erase the last known-good state.
 
-**Brick wall:** Silent success without receipts; affiliation or production claims without evidence.
+## Working mechanism
 
-**Observed public pressure (snapshot hypothesis):** Public market pressure toward AI-enabled products and operators (hypothesis only).
+**Execution Checkpoint Lattice** is a content-addressed DAG of verified intermediate execution states keyed to task subgoals.
 
-## Innovation mechanism
+Each checkpoint binds:
 
-**Execution Checkpoint Lattice** — Persist verified intermediate states and reversible checkpoints keyed to task subgoals, so the agent can branch, compare, and recover without repeating entire trajectories.
+- checkpoint and subgoal identity;
+- one or more parent checkpoints;
+- exact state and verification SHA-256 digests;
+- verification status;
+- reversibility;
+- bounded recovery cost;
+- optional content-addressed artifacts.
 
-## Target roles
+The lattice supports four real operations:
 
-- Applied AI Systems Engineer
-- Forward-Deployed Engineer
+- **verify** a serialized checkpoint DAG and its ancestry;
+- **advance** by adding a new checkpoint only when all parents exist and are verified;
+- **compare** divergent branches and locate their nearest common checkpoint;
+- **recover** to a verified reversible ancestor using a bounded rollback path and explicit recovery budget.
 
-## Application move
+It fails closed on unresolved ancestry, duplicate checkpoints, malformed digests, unverified parents, sibling-branch recovery, irreversible rollback paths, and insufficient recovery budgets.
 
-Lead with a small, inspectable Execution Checkpoint Lattice exhibit and explicit non-affiliation boundary.
+## Run it
 
-## Current scaffold state
+```bash
+python -m pytest -q
+python scripts/operate.py
 
-This leaf is a **scaffold**: contracts, tests, and a stub mechanism exist so another engineer/AI can fill production-grade code without inventing company affiliation.
+python -m pip install build
+python -m build
+python -m pip install dist/*.whl
+
+execution-checkpoint-lattice examples/recovery_plan.json \
+  --budget 3.0 \
+  --output recovery-receipt.json
+```
+
+The CLI exits `0` only when the requested lattice operation is valid. A refused recovery or malformed lattice exits non-zero, making the mechanism usable in an agent loop or CI promotion path.
+
+## Proof surface
 
 | Surface | Path |
-|---------|------|
-| Mechanism stub | `src/execution_checkpoint_lattice.py` |
-| Operate entry | `scripts/operate.py` |
-| Contract tests | `tests/` |
-| Target contract | `machine/target-contract.json` |
-| **AI fill-in brief** | **`DEV_UP_INSTRUCTIONS.md`** |
+|---|---|
+| Checkpoint DAG + recovery engine | `src/execution_checkpoint_lattice.py` |
+| Installed CLI | `src/checkpoint_lattice_cli.py` |
+| Behavioral / recovery tests | `tests/test_execution_checkpoint_lattice.py` |
+| Adversarial tests | `tests/test_adversarial.py` |
+| Reproducible recovery fixture | `examples/recovery_plan.json` |
+| Cold-start operation | `scripts/operate.py` |
 | Issue contract | `ISSUE_CONTRACT.md` |
 
-## Non-claims
+## Technical distinction
 
-- No Cognition employment, endorsement, proprietary data, or production use
-- No customer, revenue, latency, or scale claims without separate receipts
-- Scaffold tests define **intended behavior**, not verified production excellence
+This is not a list of saved snapshots. The graph encodes verified ancestry and reversible execution semantics. Branch comparison identifies divergence from a shared verified state, while recovery is allowed only when the target is a verified ancestor, every traversed checkpoint is reversible, and the rollback cost fits the declared budget. Receipts remain deterministic and content-addressed.
 
-## Next gate
+## Current boundary
 
-CURRENT_SOURCE_VALIDATION
+This is an independent reference implementation. It does not integrate proprietary Cognition systems or claim production use. The next depth gate is binding checkpoints to real worktree/container snapshots and task-run receipts so recovery can materialize the exact verified environment represented by each digest.
