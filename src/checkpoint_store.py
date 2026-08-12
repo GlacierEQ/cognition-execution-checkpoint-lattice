@@ -1,9 +1,10 @@
 """Durable local-first checkpoint store with content-addressed artifacts.
 
-Metadata lives in SQLite using WAL + immediate write transactions; large
-workspace archives live as digest-addressed immutable blobs. A checkpoint id is
-immutable: replaying the exact same record is idempotent, while conflicting
-content under an existing id is refused.
+Metadata lives in SQLite using WAL + immediate write transactions; workspace
+archives live as immutable digest-addressed blobs. Checkpoint ids are immutable:
+replaying the exact record is idempotent, while conflicting content under an
+existing id is refused. Verified children may only be stored when every parent
+already exists and is itself verified.
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from execution_checkpoint_lattice import Checkpoint
+from execution_checkpoint_lattice import Checkpoint, CheckpointStatus
 from execution_receipt import execute_verification_plan, verification_digest
 from workspace_archive import WorkspaceArchive, capture_workspace_archive
 
@@ -56,11 +57,18 @@ class CheckpointStore:
                     proof_digest TEXT NOT NULL,
                     proof_json TEXT NOT NULL,
                     archive_digest TEXT NOT NULL,
+                    archive_blob_digest TEXT,
                     state_digest TEXT NOT NULL,
                     verification_digest TEXT NOT NULL
                 )
                 """
             )
+            columns = {
+                row["name"]
+                for row in connection.execute("PRAGMA table_info(checkpoints)").fetchall()
+            }
+            if "archive_blob_digest" not in columns:
+                connection.execute("ALTER TABLE checkpoints ADD COLUMN archive_blob_digest TEXT")
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_checkpoints_state_digest ON checkpoints(state_digest)"
             )
@@ -94,8 +102,22 @@ class CheckpointStore:
             raise ValueError("stored_blob_corrupt")
         return data
 
+    def _validate_parents(self, connection: sqlite3.Connection, checkpoint: Checkpoint) -> None:
+        for parent_id in checkpoint.parent_ids:
+            row = connection.execute(
+                "SELECT checkpoint_json FROM checkpoints WHERE checkpoint_id=?",
+                (parent_id,),
+            ).fetchone()
+            if row is None:
+                raise ValueError(f"parent_missing:{parent_id}")
+            parent = Checkpoint.from_dict(json.loads(row["checkpoint_json"]))
+            if parent.status is not CheckpointStatus.VERIFIED:
+                raise ValueError(f"parent_not_verified:{parent_id}")
+
     def save(self, checkpoint: Checkpoint, proof: Mapping[str, Any], archive: WorkspaceArchive) -> str:
         archive.validate()
+        if checkpoint.status is not CheckpointStatus.VERIFIED:
+            raise ValueError("store_requires_verified_checkpoint")
         if checkpoint.state_digest != archive.snapshot_digest:
             raise ValueError("checkpoint_state_archive_mismatch")
         if checkpoint.verification_digest is None:
@@ -105,22 +127,26 @@ class CheckpointStore:
         if checkpoint.artifacts.get("verification_plan") != checkpoint.verification_digest:
             raise ValueError("checkpoint_verification_artifact_mismatch")
         proof_doc = dict(proof)
-        proof_checkpoint = proof_doc.get("checkpoint")
-        if proof_checkpoint != checkpoint.as_dict():
+        if proof_doc.get("checkpoint") != checkpoint.as_dict():
             raise ValueError("checkpoint_proof_mismatch")
-        checkpoint_json = json.dumps(checkpoint.as_dict(), sort_keys=True, separators=(",", ":"))
-        checkpoint_digest = _digest(checkpoint.as_dict())
+
+        checkpoint_doc = checkpoint.as_dict()
+        checkpoint_json = json.dumps(checkpoint_doc, sort_keys=True, separators=(",", ":"))
+        checkpoint_digest = _digest(checkpoint_doc)
         proof_json = json.dumps(proof_doc, sort_keys=True, separators=(",", ":"), allow_nan=False)
         proof_digest = _sha(proof_json.encode("utf-8"))
-        archive_blob_digest = self.put_blob(archive.to_bytes())
-        if archive_blob_digest != _sha(archive.to_bytes()):
+        archive_bytes = archive.to_bytes()
+        archive_blob_digest = self.put_blob(archive_bytes)
+        if archive_blob_digest != _sha(archive_bytes):
             raise ValueError("archive_blob_digest_internal_error")
 
         connection = self._connect()
         try:
             connection.execute("BEGIN IMMEDIATE")
+            self._validate_parents(connection, checkpoint)
             existing = connection.execute(
-                "SELECT checkpoint_digest, proof_digest, archive_digest FROM checkpoints WHERE checkpoint_id=?",
+                "SELECT checkpoint_digest, proof_digest, archive_digest, archive_blob_digest "
+                "FROM checkpoints WHERE checkpoint_id=?",
                 (checkpoint.checkpoint_id,),
             ).fetchone()
             if existing is not None:
@@ -128,7 +154,13 @@ class CheckpointStore:
                     existing["checkpoint_digest"] == checkpoint_digest
                     and existing["proof_digest"] == proof_digest
                     and existing["archive_digest"] == archive.archive_digest
+                    and (existing["archive_blob_digest"] in {None, archive_blob_digest})
                 ):
+                    if existing["archive_blob_digest"] is None:
+                        connection.execute(
+                            "UPDATE checkpoints SET archive_blob_digest=? WHERE checkpoint_id=?",
+                            (archive_blob_digest, checkpoint.checkpoint_id),
+                        )
                     connection.commit()
                     return checkpoint_digest
                 raise ValueError("checkpoint_id_conflict")
@@ -136,9 +168,9 @@ class CheckpointStore:
                 """
                 INSERT INTO checkpoints(
                     checkpoint_id, checkpoint_digest, checkpoint_json,
-                    proof_digest, proof_json, archive_digest,
+                    proof_digest, proof_json, archive_digest, archive_blob_digest,
                     state_digest, verification_digest
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     checkpoint.checkpoint_id,
@@ -147,6 +179,7 @@ class CheckpointStore:
                     proof_digest,
                     proof_json,
                     archive.archive_digest,
+                    archive_blob_digest,
                     checkpoint.state_digest,
                     checkpoint.verification_digest,
                 ),
@@ -187,25 +220,37 @@ class CheckpointStore:
     def get_archive(self, checkpoint_id: str) -> WorkspaceArchive:
         with self._connect() as connection:
             row = connection.execute(
-                "SELECT archive_digest FROM checkpoints WHERE checkpoint_id=?",
+                "SELECT archive_digest, archive_blob_digest FROM checkpoints WHERE checkpoint_id=?",
                 (checkpoint_id,),
             ).fetchone()
         if row is None:
             raise KeyError(f"checkpoint_missing:{checkpoint_id}")
-        wanted = row["archive_digest"]
+        wanted_archive_digest = row["archive_digest"]
+        blob_digest = row["archive_blob_digest"]
+        if blob_digest:
+            archive = WorkspaceArchive.from_bytes(self.get_blob(blob_digest))
+            if archive.archive_digest != wanted_archive_digest:
+                raise ValueError("archive_metadata_digest_mismatch")
+            return archive
+
+        # Compatibility recovery for an older store created before direct blob
+        # addressing was added. Once found, bind the direct blob digest.
         for path in self.blobs.iterdir():
-            if not path.is_file():
+            if not path.is_file() or len(path.name) != 64:
                 continue
-            data = path.read_bytes()
+            data = self.get_blob(path.name)
             try:
                 archive = WorkspaceArchive.from_bytes(data)
             except Exception:
                 continue
-            if archive.archive_digest == wanted:
-                if _sha(data) != path.name:
-                    raise ValueError("archive_blob_store_corrupt")
+            if archive.archive_digest == wanted_archive_digest:
+                with self._connect() as connection:
+                    connection.execute(
+                        "UPDATE checkpoints SET archive_blob_digest=? WHERE checkpoint_id=?",
+                        (path.name, checkpoint_id),
+                    )
                 return archive
-        raise KeyError(f"archive_missing:{wanted}")
+        raise KeyError(f"archive_missing:{wanted_archive_digest}")
 
     def list_checkpoints(self) -> tuple[Checkpoint, ...]:
         with self._connect() as connection:
@@ -217,6 +262,7 @@ class CheckpointStore:
     def integrity_report(self) -> dict[str, Any]:
         errors: list[str] = []
         checkpoints = self.list_checkpoints()
+        ids = {checkpoint.checkpoint_id for checkpoint in checkpoints}
         for checkpoint in checkpoints:
             try:
                 proof = self.get_proof(checkpoint.checkpoint_id)
@@ -225,6 +271,9 @@ class CheckpointStore:
                     errors.append(f"proof_mismatch:{checkpoint.checkpoint_id}")
                 if archive.snapshot_digest != checkpoint.state_digest:
                     errors.append(f"archive_state_mismatch:{checkpoint.checkpoint_id}")
+                for parent_id in checkpoint.parent_ids:
+                    if parent_id not in ids:
+                        errors.append(f"parent_missing:{checkpoint.checkpoint_id}:{parent_id}")
             except Exception as exc:
                 errors.append(f"{checkpoint.checkpoint_id}:{type(exc).__name__}:{exc}")
         core = {
@@ -258,7 +307,7 @@ def capture_checkpoint_to_store(
         parent_ids=tuple(parent_ids),
         state_digest=archive.snapshot_digest,
         verification_digest=verify_digest,
-        status="VERIFIED",
+        status=CheckpointStatus.VERIFIED,
         reversible=reversible,
         recovery_cost_units=recovery_cost_units,
         artifacts={
@@ -266,8 +315,6 @@ def capture_checkpoint_to_store(
             "verification_plan": verify_digest,
         },
     )
-    # Normalize through the public parser so enum/status validation stays single-source.
-    checkpoint = Checkpoint.from_dict(checkpoint.as_dict())
     proof = {
         "schema": "glaciereq.execution-checkpoint-store-record.v1",
         "checkpoint": checkpoint.as_dict(),
