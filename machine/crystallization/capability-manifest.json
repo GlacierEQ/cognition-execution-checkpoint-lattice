@@ -34,31 +34,31 @@
     {
       "id": "installable_cli",
       "class": "CLIs",
-      "description": "Operate serialized checkpoint lattices through an installable command with non-zero refusal semantics.",
+      "description": "Operate serialized lattices and capture verified checkpoints from real worktrees through installed commands with non-zero refusal semantics.",
       "material": true,
       "state": "WORKING",
-      "implementation_paths": ["src/checkpoint_lattice_cli.py", "pyproject.toml"],
-      "verification": [".github/workflows/tests.yml", "examples/recovery_plan.json"],
+      "implementation_paths": ["src/checkpoint_lattice_cli.py", "src/checkpoint_capture_cli.py", "pyproject.toml"],
+      "verification": [".github/workflows/tests.yml", "tests/test_real_checkpoint_capture.py", "examples/recovery_plan.json"],
       "consumer": "human operator and CI"
     },
     {
       "id": "real_state_snapshot_adapter",
       "class": "integrations",
-      "description": "Bind checkpoint state digests to actual worktree/container/environment snapshots rather than caller-supplied digests.",
+      "description": "Bind checkpoint state digests to actual git worktree file bytes, HEAD, dirty status, dependency manifests, and bounded environment identity rather than caller-supplied hashes.",
       "material": true,
-      "state": "MISSING",
-      "implementation_paths": [],
-      "verification": [],
+      "state": "WORKING",
+      "implementation_paths": ["src/worktree_snapshot.py", "src/checkpoint_capture.py"],
+      "verification": ["tests/test_real_checkpoint_capture.py::test_worktree_snapshot_changes_when_real_file_changes", "tests/test_real_checkpoint_capture.py::test_snapshot_includes_untracked_files_because_they_affect_recoverability"],
       "consumer": "checkpoint persistence engine"
     },
     {
       "id": "execution_receipt_binding",
       "class": "observability",
-      "description": "Bind checkpoint verification digests to exact executed commands, environment identity, outputs, and test/build receipts.",
+      "description": "Execute verification commands and bind exact argv, exit code, stdout/stderr digests, and aggregate verification digest into a verified checkpoint receipt.",
       "material": true,
-      "state": "MISSING",
-      "implementation_paths": [],
-      "verification": [],
+      "state": "WORKING",
+      "implementation_paths": ["src/execution_receipt.py", "src/checkpoint_capture.py"],
+      "verification": ["tests/test_real_checkpoint_capture.py::test_capture_verified_checkpoint_binds_real_state_and_command_receipt", "tests/test_real_checkpoint_capture.py::test_capture_refuses_failed_verification_instead_of_minting_verified_checkpoint", "tests/test_real_checkpoint_capture.py::test_command_receipt_binds_failure_output_and_exit_code"],
       "consumer": "checkpoint verifier"
     },
     {
