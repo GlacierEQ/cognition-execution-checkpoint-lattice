@@ -10,6 +10,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements.txt build
       - run: python -m pytest -q
       - run: python scripts/operate.py
+      - run: python -m build
+      - run: pip install dist/*.whl
+      - run: execution-checkpoint-lattice examples/recovery_plan.json --budget 3.0 --output /tmp/recovery-plan-receipt.json
+      - run: python -c 'import json; d=json.load(open("/tmp/recovery-plan-receipt.json")); assert d["decision"] == "ALLOW"; assert d["metrics"]["result"]["target_id"] == "root"; assert len(d["digest"]) == 64'
+      - run: python examples/persistent_recovery_demo.py --work /tmp/persistent-recovery > /tmp/persistent-recovery.json
+      - run: python -c 'import json; d=json.load(open("/tmp/persistent-recovery.json")); assert d["store_integrity"]["status"] == "PASS"; assert d["recovery"]["verified"] is True; assert d["root_state_digest"] != d["child_state_digest"]; assert d["recovery"]["recovered_state_digest"] == d["root_state_digest"]'
+      - run: execution-checkpoint-store --store /tmp/persistent-recovery/store integrity --output /tmp/store-integrity.json
+      - run: python -c 'import json; d=json.load(open("/tmp/store-integrity.json")); assert d["status"] == "PASS"; assert d["checkpoint_count"] == 2'

@@ -1,0 +1,95 @@
+{
+  "schema": "glaciereq.crystallization-capabilities.v1",
+  "capabilities": [
+    {
+      "id": "verified_checkpoint_dag",
+      "class": "core_domain_logic",
+      "description": "Persist and validate content-addressed execution checkpoints with verified ancestry and explicit reversibility.",
+      "material": true,
+      "state": "WORKING",
+      "implementation_paths": ["src/execution_checkpoint_lattice.py"],
+      "verification": ["tests/test_execution_checkpoint_lattice.py"],
+      "consumer": "execution orchestrator"
+    },
+    {
+      "id": "branch_comparison",
+      "class": "analytics",
+      "description": "Compare divergent execution branches and locate their nearest common verified checkpoint.",
+      "material": true,
+      "state": "WORKING",
+      "implementation_paths": ["src/execution_checkpoint_lattice.py"],
+      "verification": ["tests/test_execution_checkpoint_lattice.py::test_compares_divergent_branches_at_nearest_common_checkpoint"],
+      "consumer": "agent planner"
+    },
+    {
+      "id": "bounded_recovery_planner",
+      "class": "operational_recovery",
+      "description": "Plan rollback only to verified ancestors, refusing irreversible paths and recovery budgets that are too small.",
+      "material": true,
+      "state": "WORKING",
+      "implementation_paths": ["src/execution_checkpoint_lattice.py"],
+      "verification": ["tests/test_execution_checkpoint_lattice.py"],
+      "consumer": "failure recovery workflow"
+    },
+    {
+      "id": "installable_cli",
+      "class": "CLIs",
+      "description": "Operate lattices, capture checkpoints, inspect durable stores, materialize checkpoints, and execute recoveries through installed fail-closed commands.",
+      "material": true,
+      "state": "WORKING",
+      "implementation_paths": ["src/checkpoint_lattice_cli.py", "src/checkpoint_capture_cli.py", "src/checkpoint_store_cli.py", "pyproject.toml"],
+      "verification": [".github/workflows/tests.yml", "tests/test_persistent_recovery.py", "examples/persistent_recovery_demo.py"],
+      "consumer": "human operator, agent executor, and CI"
+    },
+    {
+      "id": "real_state_snapshot_adapter",
+      "class": "integrations",
+      "description": "Bind checkpoint state digests to actual git worktree file bytes, HEAD, dirty status, dependency manifests, and bounded environment identity rather than caller-supplied hashes.",
+      "material": true,
+      "state": "WORKING",
+      "implementation_paths": ["src/worktree_snapshot.py", "src/checkpoint_capture.py", "src/workspace_archive.py"],
+      "verification": ["tests/test_real_checkpoint_capture.py", "tests/test_persistent_recovery.py::test_materialization_is_self_contained_after_original_repository_is_removed"],
+      "consumer": "checkpoint persistence engine"
+    },
+    {
+      "id": "execution_receipt_binding",
+      "class": "observability",
+      "description": "Execute verification commands and bind exact argv, exit code, stdout/stderr digests, and aggregate verification digest into a verified checkpoint receipt.",
+      "material": true,
+      "state": "WORKING",
+      "implementation_paths": ["src/execution_receipt.py", "src/checkpoint_capture.py", "src/checkpoint_store.py"],
+      "verification": ["tests/test_real_checkpoint_capture.py", "tests/test_persistent_recovery.py"],
+      "consumer": "checkpoint verifier"
+    },
+    {
+      "id": "checkpoint_materialization",
+      "class": "execution_engine",
+      "description": "Materialize a stored verified checkpoint into an isolated git workspace from its embedded content-addressed Git bundle and archived working-tree state, then verify the reconstructed snapshot digest.",
+      "material": true,
+      "state": "WORKING",
+      "implementation_paths": ["src/workspace_archive.py", "src/checkpoint_materializer.py"],
+      "verification": ["tests/test_persistent_recovery.py::test_materialization_is_self_contained_after_original_repository_is_removed", "examples/persistent_recovery_demo.py"],
+      "consumer": "agent executor"
+    },
+    {
+      "id": "recovery_executor",
+      "class": "operational_recovery",
+      "description": "Execute an approved bounded recovery plan, materialize the target ancestor, rerun the target verification commands, and prove the recovered workspace matches the target state digest.",
+      "material": true,
+      "state": "WORKING",
+      "implementation_paths": ["src/recovery_executor.py", "src/checkpoint_materializer.py"],
+      "verification": ["tests/test_persistent_recovery.py::test_recovery_executes_plan_materializes_target_and_reruns_verification", "tests/test_persistent_recovery.py::test_recovery_refuses_insufficient_budget_before_materialization", "examples/persistent_recovery_demo.py"],
+      "consumer": "failure recovery workflow"
+    },
+    {
+      "id": "persistent_checkpoint_store",
+      "class": "storage",
+      "description": "Persist immutable checkpoint records and content-addressed workspace artifacts across process restarts using SQLite WAL transactions, direct blob addressing, parent verification, idempotent exact replay, conflict refusal, and integrity reports.",
+      "material": true,
+      "state": "WORKING",
+      "implementation_paths": ["src/checkpoint_store.py"],
+      "verification": ["tests/test_persistent_recovery.py::test_store_persists_and_reopens_verified_checkpoint_with_integrity", "tests/test_persistent_recovery.py::test_store_refuses_child_when_parent_is_not_persisted", "tests/test_persistent_recovery.py::test_checkpoint_id_is_immutable_but_exact_replay_is_idempotent", ".github/workflows/tests.yml"],
+      "consumer": "long-horizon execution service"
+    }
+  ]
+}

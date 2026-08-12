@@ -1,0 +1,25 @@
+{
+  "schema": "glaciereq.crystallization-purpose.v1",
+  "canonical_identity": "GlacierEQ/cognition-execution-checkpoint-lattice",
+  "purpose": "Carry long-horizon software tasks through verified intermediate states so execution can branch, compare, and recover without replaying the entire trajectory.",
+  "problem": "Long-running agent tasks become fragile when environment setup, hidden dependencies, ambiguous requirements, and partial failures compound faster than the agent can safely reconstruct prior state.",
+  "intended_outcome": "An execution system can persist verified subgoal checkpoints, branch from known-good states, compare divergent trajectories, and materialize a bounded recovery to a verified ancestor with exact provenance.",
+  "consumers": ["long-horizon coding agent", "execution orchestrator", "failure recovery workflow"],
+  "system_kind": "developer_tool",
+  "naturally_deployable": false,
+  "lineage": {
+    "predecessors": [],
+    "successors": [],
+    "duplicates": [],
+    "canonical_successor": null
+  },
+  "evidence": [
+    "ISSUE_CONTRACT.md",
+    "README.md",
+    "DEV_UP_INSTRUCTIONS.md",
+    "src/execution_checkpoint_lattice.py",
+    "tests/",
+    "examples/recovery_plan.json",
+    "git history"
+  ]
+}
