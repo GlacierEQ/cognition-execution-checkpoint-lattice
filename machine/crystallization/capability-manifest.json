@@ -1,0 +1,95 @@
+{
+  "schema": "glaciereq.crystallization-capabilities.v1",
+  "capabilities": [
+    {
+      "id": "verified_checkpoint_dag",
+      "class": "core_domain_logic",
+      "description": "Persist and validate content-addressed execution checkpoints with verified ancestry and explicit reversibility.",
+      "material": true,
+      "state": "WORKING",
+      "implementation_paths": ["src/execution_checkpoint_lattice.py"],
+      "verification": ["tests/test_execution_checkpoint_lattice.py"],
+      "consumer": "execution orchestrator"
+    },
+    {
+      "id": "branch_comparison",
+      "class": "analytics",
+      "description": "Compare divergent execution branches and locate their nearest common verified checkpoint.",
+      "material": true,
+      "state": "WORKING",
+      "implementation_paths": ["src/execution_checkpoint_lattice.py"],
+      "verification": ["tests/test_execution_checkpoint_lattice.py::test_compares_divergent_branches_at_nearest_common_checkpoint"],
+      "consumer": "agent planner"
+    },
+    {
+      "id": "bounded_recovery_planner",
+      "class": "operational_recovery",
+      "description": "Plan rollback only to verified ancestors, refusing irreversible paths and recovery budgets that are too small.",
+      "material": true,
+      "state": "WORKING",
+      "implementation_paths": ["src/execution_checkpoint_lattice.py"],
+      "verification": ["tests/test_execution_checkpoint_lattice.py"],
+      "consumer": "failure recovery workflow"
+    },
+    {
+      "id": "installable_cli",
+      "class": "CLIs",
+      "description": "Operate serialized checkpoint lattices through an installable command with non-zero refusal semantics.",
+      "material": true,
+      "state": "WORKING",
+      "implementation_paths": ["src/checkpoint_lattice_cli.py", "pyproject.toml"],
+      "verification": [".github/workflows/tests.yml", "examples/recovery_plan.json"],
+      "consumer": "human operator and CI"
+    },
+    {
+      "id": "real_state_snapshot_adapter",
+      "class": "integrations",
+      "description": "Bind checkpoint state digests to actual worktree/container/environment snapshots rather than caller-supplied digests.",
+      "material": true,
+      "state": "MISSING",
+      "implementation_paths": [],
+      "verification": [],
+      "consumer": "checkpoint persistence engine"
+    },
+    {
+      "id": "execution_receipt_binding",
+      "class": "observability",
+      "description": "Bind checkpoint verification digests to exact executed commands, environment identity, outputs, and test/build receipts.",
+      "material": true,
+      "state": "MISSING",
+      "implementation_paths": [],
+      "verification": [],
+      "consumer": "checkpoint verifier"
+    },
+    {
+      "id": "checkpoint_materialization",
+      "class": "execution_engine",
+      "description": "Materialize a selected verified checkpoint into an isolated runnable workspace or container.",
+      "material": true,
+      "state": "MISSING",
+      "implementation_paths": [],
+      "verification": [],
+      "consumer": "agent executor"
+    },
+    {
+      "id": "recovery_executor",
+      "class": "operational_recovery",
+      "description": "Execute an approved recovery plan and prove the resulting workspace matches the target checkpoint state digest.",
+      "material": true,
+      "state": "MISSING",
+      "implementation_paths": [],
+      "verification": [],
+      "consumer": "failure recovery workflow"
+    },
+    {
+      "id": "persistent_checkpoint_store",
+      "class": "storage",
+      "description": "Persist checkpoint graph metadata and artifact references across process restarts with integrity validation.",
+      "material": true,
+      "state": "MISSING",
+      "implementation_paths": [],
+      "verification": [],
+      "consumer": "long-horizon execution service"
+    }
+  ]
+}
