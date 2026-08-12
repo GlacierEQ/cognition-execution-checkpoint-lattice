@@ -1,9 +1,20 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "cognition-execution-checkpoint-lattice"
-version = "0.0.1"
-description = "Scaffold: Execution Checkpoint Lattice (independent Cognition lens)"
+version = "0.1.0"
+description = "Content-addressed long-horizon execution checkpoint lattice with bounded recovery"
 requires-python = ">=3.11"
 dependencies = []
+
+[project.scripts]
+execution-checkpoint-lattice = "checkpoint_lattice_cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["execution_checkpoint_lattice", "checkpoint_lattice_cli", "promotion_authority"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
