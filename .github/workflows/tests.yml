@@ -10,6 +10,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements.txt build
       - run: python -m pytest -q
       - run: python scripts/operate.py
+      - run: python -m build
+      - run: pip install dist/*.whl
+      - run: execution-checkpoint-lattice examples/recovery_plan.json --budget 3.0 --output /tmp/recovery-receipt.json
+      - run: python -c 'import json; d=json.load(open("/tmp/recovery-receipt.json")); assert d["decision"] == "ALLOW"; assert d["metrics"]["result"]["target_id"] == "root"; assert len(d["digest"]) == 64'
