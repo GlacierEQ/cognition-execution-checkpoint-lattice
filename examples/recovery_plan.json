@@ -1,0 +1,43 @@
+{
+  "subject_id": "long-task-demo",
+  "checkpoints": [
+    {
+      "checkpoint_id": "root",
+      "subgoal": "environment verified",
+      "parent_ids": [],
+      "state_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "verification_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "status": "VERIFIED",
+      "reversible": true,
+      "recovery_cost_units": 0.5,
+      "artifacts": {}
+    },
+    {
+      "checkpoint_id": "implementation",
+      "subgoal": "implementation complete",
+      "parent_ids": ["root"],
+      "state_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "verification_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "status": "VERIFIED",
+      "reversible": true,
+      "recovery_cost_units": 1.0,
+      "artifacts": {}
+    },
+    {
+      "checkpoint_id": "tests",
+      "subgoal": "test candidate verified",
+      "parent_ids": ["implementation"],
+      "state_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "verification_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "status": "VERIFIED",
+      "reversible": true,
+      "recovery_cost_units": 1.5,
+      "artifacts": {}
+    }
+  ],
+  "operation": {
+    "kind": "recover",
+    "current_id": "tests",
+    "target_id": "root"
+  }
+}
