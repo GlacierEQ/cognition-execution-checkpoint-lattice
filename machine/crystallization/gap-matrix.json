@@ -1,20 +1,4 @@
 {
   "schema": "glaciereq.crystallization-gaps.v1",
-  "gaps": [
-    {
-      "capability_id": "checkpoint_materialization",
-      "state": "MISSING",
-      "required_work": "Materialize a verified checkpoint into an isolated runnable worktree or container and prove the materialized state matches its stored snapshot digest before execution continues."
-    },
-    {
-      "capability_id": "recovery_executor",
-      "state": "MISSING",
-      "required_work": "Execute approved rollback paths, restore the target snapshot, rerun verification, and emit a recovery receipt proving the resulting state exactly matches the selected ancestor."
-    },
-    {
-      "capability_id": "persistent_checkpoint_store",
-      "state": "MISSING",
-      "required_work": "Add durable local-first persistence for checkpoint graph metadata and artifact references with integrity checking, restart recovery, and concurrency-safe updates."
-    }
-  ]
+  "gaps": []
 }
