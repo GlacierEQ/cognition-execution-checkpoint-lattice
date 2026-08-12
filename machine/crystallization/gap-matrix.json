@@ -1,0 +1,30 @@
+{
+  "schema": "glaciereq.crystallization-gaps.v1",
+  "gaps": [
+    {
+      "capability_id": "real_state_snapshot_adapter",
+      "state": "MISSING",
+      "required_work": "Capture exact git/worktree, dependency, environment, and optional container snapshot identity into a content-addressed checkpoint adapter with tamper tests."
+    },
+    {
+      "capability_id": "execution_receipt_binding",
+      "state": "MISSING",
+      "required_work": "Bind verification digests to exact commands, exit codes, output digests, dependency/environment identity, and test/build receipts rather than caller-provided verification hashes."
+    },
+    {
+      "capability_id": "checkpoint_materialization",
+      "state": "MISSING",
+      "required_work": "Materialize a verified checkpoint into an isolated worktree or container and prove the materialized state matches its stored digest before execution continues."
+    },
+    {
+      "capability_id": "recovery_executor",
+      "state": "MISSING",
+      "required_work": "Execute approved rollback paths, restore the target snapshot, rerun verification, and emit a recovery receipt proving the resulting state exactly matches the selected ancestor."
+    },
+    {
+      "capability_id": "persistent_checkpoint_store",
+      "state": "MISSING",
+      "required_work": "Add durable local-first persistence for checkpoint metadata/artifact references with integrity checking, restart recovery, and concurrency-safe updates."
+    }
+  ]
+}
