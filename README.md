@@ -6,64 +6,78 @@ Independent GlacierEQ portfolio exhibit aligned to **Cognition** operating theme
 
 ## Problem
 
-Long-horizon software tasks fail expensively when environment setup, hidden dependencies, ambiguous requirements, and partial failures compound. Restarting the entire trajectory wastes work and can erase the last known-good state.
+Long-horizon software tasks fail expensively when environment setup, hidden dependencies, ambiguous requirements, and partial failures compound. Restarting the entire trajectory wastes work; merely saving a label or hash is not enough if the exact state cannot later be reconstructed and re-verified.
 
-## Working mechanism
+## System
 
-**Execution Checkpoint Lattice** is a content-addressed DAG of verified intermediate execution states keyed to task subgoals.
+**Execution Checkpoint Lattice** is a persistent, content-addressed execution-state graph with real capture, branch comparison, self-contained materialization, and bounded recovery.
 
-Each checkpoint binds:
+A verified checkpoint binds:
 
-- checkpoint and subgoal identity;
-- one or more parent checkpoints;
-- exact state and verification SHA-256 digests;
-- verification status;
-- reversibility;
-- bounded recovery cost;
-- optional content-addressed artifacts.
+- checkpoint/subgoal identity and verified parent ancestry;
+- exact git worktree file bytes, HEAD, dirty-status digest, dependency manifests, and bounded environment identity;
+- exact verification commands, exit codes, stdout/stderr digests, and aggregate verification digest;
+- explicit reversibility and recovery cost;
+- a self-contained Git bundle plus archived tracked/untracked working-tree state;
+- immutable persistent metadata and artifact identities.
 
-The lattice supports four real operations:
+## What it can do
 
-- **verify** a serialized checkpoint DAG and its ancestry;
-- **advance** by adding a new checkpoint only when all parents exist and are verified;
-- **compare** divergent branches and locate their nearest common checkpoint;
-- **recover** to a verified reversible ancestor using a bounded rollback path and explicit recovery budget.
+- **capture** a real worktree only after its verification command plan passes;
+- **persist** checkpoint metadata in SQLite WAL storage and immutable content-addressed blobs;
+- **compare** divergent verified branches and locate their nearest common checkpoint;
+- **plan recovery** only to verified ancestors and refuse irreversible or over-budget paths;
+- **materialize** a checkpoint into a fresh isolated git workspace from its embedded bundle, even after the original repository path is removed;
+- **execute recovery** by materializing the target, rerunning the target verification commands, and proving the recovered snapshot digest equals the target state digest;
+- **audit store integrity** across checkpoint metadata, parent references, proofs, state digests, and workspace archives.
 
-It fails closed on unresolved ancestry, duplicate checkpoints, malformed digests, unverified parents, sibling-branch recovery, irreversible rollback paths, and insufficient recovery budgets.
+Checkpoint ids are immutable. Exact replay is idempotent; conflicting content under an existing id is refused.
 
-## Run it
+## Install
 
 ```bash
 python -m pytest -q
-python scripts/operate.py
-
 python -m pip install build
 python -m build
 python -m pip install dist/*.whl
-
-execution-checkpoint-lattice examples/recovery_plan.json \
-  --budget 3.0 \
-  --output recovery-receipt.json
 ```
 
-The CLI exits `0` only when the requested lattice operation is valid. A refused recovery or malformed lattice exits non-zero, making the mechanism usable in an agent loop or CI promotion path.
+Operate an in-memory serialized lattice:
+
+```bash
+execution-checkpoint-lattice examples/recovery_plan.json \
+  --budget 3.0 --output recovery-plan.json
+```
+
+Operate the persistent store:
+
+```bash
+execution-checkpoint-store --store .checkpoint-store integrity
+execution-checkpoint-store --store .checkpoint-store list
+```
+
+Run the full persistent recovery demonstration:
+
+```bash
+python examples/persistent_recovery_demo.py --work /tmp/checkpoint-demo
+```
+
+That demonstration creates a repository, captures a verified root checkpoint, advances and captures a distinct child, reopens the persistent store, recovers child → root from the embedded bundle, reruns verification, and proves the recovered state digest equals the original root digest.
 
 ## Proof surface
 
-| Surface | Path |
-|---|---|
-| Checkpoint DAG + recovery engine | `src/execution_checkpoint_lattice.py` |
-| Installed CLI | `src/checkpoint_lattice_cli.py` |
-| Behavioral / recovery tests | `tests/test_execution_checkpoint_lattice.py` |
-| Adversarial tests | `tests/test_adversarial.py` |
-| Reproducible recovery fixture | `examples/recovery_plan.json` |
-| Cold-start operation | `scripts/operate.py` |
-| Issue contract | `ISSUE_CONTRACT.md` |
-
-## Technical distinction
-
-This is not a list of saved snapshots. The graph encodes verified ancestry and reversible execution semantics. Branch comparison identifies divergence from a shared verified state, while recovery is allowed only when the target is a verified ancestor, every traversed checkpoint is reversible, and the rollback cost fits the declared budget. Receipts remain deterministic and content-addressed.
+| Capability | Implementation | Behavioral proof |
+|---|---|---|
+| Checkpoint DAG / compare / recovery planning | `src/execution_checkpoint_lattice.py` | `tests/test_execution_checkpoint_lattice.py` |
+| Real worktree state identity | `src/worktree_snapshot.py` | `tests/test_real_checkpoint_capture.py` |
+| Exact command verification receipts | `src/execution_receipt.py` | `tests/test_real_checkpoint_capture.py` |
+| Self-contained Git-bundle archive | `src/workspace_archive.py` | `tests/test_persistent_recovery.py` |
+| Durable checkpoint/artifact store | `src/checkpoint_store.py` | `tests/test_persistent_recovery.py` |
+| Verified materialization | `src/checkpoint_materializer.py` | `tests/test_persistent_recovery.py` |
+| Recovery execution + re-verification | `src/recovery_executor.py` | `tests/test_persistent_recovery.py` |
+| Installed operational CLI | `src/checkpoint_store_cli.py` | `.github/workflows/tests.yml` |
+| Full executable scenario | `examples/persistent_recovery_demo.py` | `.github/workflows/tests.yml` |
 
 ## Current boundary
 
-This is an independent reference implementation. It does not integrate proprietary Cognition systems or claim production use. The next depth gate is binding checkpoints to real worktree/container snapshots and task-run receipts so recovery can materialize the exact verified environment represented by each digest.
+This is an independent local-first execution/recovery system. It does not integrate proprietary Cognition infrastructure and makes no production-use claim. Its self-contained archive intentionally captures tracked and untracked non-ignored worktree state plus reachable Git history; ignored caches or external services require their own purpose-specific checkpoint adapters if a workload depends on them. The crystallization manifests define the material capability set, and terminal `CRYSTALLIZED` status is earned only from exact-head behavioral/build/runtime proof.
