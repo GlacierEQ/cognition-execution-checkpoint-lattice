@@ -1,106 +1,35 @@
-# DEV_UP_INSTRUCTIONS — for implementing AIs / engineers
-
-## Excellence group enrollment
-
-- **Group:** Wave C
-- **Wave id:** `WAVE-C-2026-08-10`
-- **Enrolled:** 2026-08-10T1002Z
-- **Phase:** SCAFFOLD_ENROLLED → implement mechanism → proof → promote (XOR gap)
-- **DoD:** Bodybuilder gates in `excellence/framework/PIP_TO_BODYBUILDER_PIPELINE.md`
+# DEV_UP_INSTRUCTIONS — implementation record
 
 **Repository:** `GlacierEQ/cognition-execution-checkpoint-lattice`  
-**Company lens (independent):** Cognition (`cognition`)  
-**Innovation:** Execution Checkpoint Lattice  
-**Scaffold batch:** 2026-08-10T0924Z
+**Independent company lens:** Cognition  
+**Innovation:** Execution Checkpoint Lattice
 
 ## Mission
 
-Implement a **real, testable** central mechanism that addresses the bottleneck below. Do **not** claim Cognition affiliation, proprietary access, or production deployment.
+Carry long-horizon software tasks through verified intermediate states so an execution agent can branch, compare, and recover without repeating an entire trajectory.
 
-### Bottleneck
-reliably carrying software tasks across long horizons where environment setup, hidden dependencies, ambiguous requirements, and partial failures compound
+## Implemented
 
-### Brick wall
-Silent success without receipts; affiliation or production claims without evidence.
+`src/execution_checkpoint_lattice.py` now provides a content-addressed checkpoint DAG rather than a placeholder allow/refuse shell.
 
-### Mechanism to implement
-Persist verified intermediate states and reversible checkpoints keyed to task subgoals, so the agent can branch, compare, and recover without repeating entire trajectories.
+A checkpoint binds subgoal identity, parent checkpoints, state digest, verification digest, verification state, reversibility, recovery cost, and optional artifact digests. The lattice enforces verified ancestry and exposes:
 
-## Hard rules (fail closed)
+- serialized DAG verification;
+- verified checkpoint advancement;
+- divergent branch comparison with nearest common checkpoint;
+- bounded recovery to a verified ancestor;
+- irreversible-path refusal;
+- recovery-budget refusal;
+- deterministic snapshot, comparison, checkpoint, and recovery-plan digests.
 
-1. **No affiliation theater** — never state or imply Cognition employment, endorsement, or proprietary systems access.
-2. **No magic numbers / ANSWER=42** — all thresholds named constants with units in comments.
-3. **No import-only operate** — `scripts/operate.py` must call real methods and assert behavioral outputs.
-4. **No field-echo tests** — tests must change inputs and observe different outputs / refuse paths.
-5. **Deterministic** — pure functions preferred; time/randomness injected.
-6. **Receipts** — success and refuse paths return structured dicts with digests where useful.
-7. **PROMOTED XOR gap** — do not mark PROMOTED while `machine/gap-receipt.json` exists.
-8. Keep public surface free of secrets, private repos, and personal contact PII.
+`src/checkpoint_lattice_cli.py` exposes the mechanism as an installable command, and `examples/recovery_plan.json` demonstrates a three-stage verified trajectory recovering to its root checkpoint.
 
-## Implementation checklist
+## Verification contract
 
-### 1. Replace the stub mechanism
-File: `src/execution_checkpoint_lattice.py`
+Behavioral tests now cover DAG verification, divergence comparison, successful recovery, sibling recovery refusal, budget refusal, irreversible rollback refusal, checkpoint advancement, unverified-parent refusal, unresolved ancestry, and malformed digests. Existing adversarial coverage remains intact.
 
-- Expand `ExecutionCheckpointLattice` into a complete, self-contained implementation.
-- Public API must stay stable enough that tests in `tests/test_execution_checkpoint_lattice.py` can be upgraded (not gutted).
-- Include at least:
-  - happy-path success with structured result
-  - explicit **refuse** path (invalid input, budget exceeded, expired grant, etc.)
-  - deterministic digest/fingerprint for auditability
-- Prefer stdlib-only unless a dependency is essential (then pin in `requirements.txt`).
+The repository is packaged as a wheel with the `execution-checkpoint-lattice` console command. Exact-source promotion remains governed by the existing Helix authority path and must not be inferred from this document.
 
-### 2. Make operate real
-File: `scripts/operate.py`
+## Truth boundary
 
-- Import the mechanism, construct inputs, call methods, print JSON receipt.
-- Exit non-zero on refuse/failure.
-- Content-check that outputs are not empty / not mere class names.
-
-### 3. Strengthen tests
-Files: `tests/test_execution_checkpoint_lattice.py`, `tests/test_adversarial.py`
-
-- Positive: ≥3 behavioral cases with distinct inputs → distinct outputs.
-- Negative: malformed input, expired authority, over-budget, idempotency where relevant.
-- Adversarial: attempt to smuggle affiliation claims or bypass refuse gates — must fail closed.
-
-### 4. Freeze the target contract
-File: `machine/target-contract.json`
-
-- Update `target.purpose` and `target.central_bottleneck` only if the mechanism narrows (never broadens into marketing).
-- When tests + operate pass: set `current.implemented/tested/operable` appropriately and bind proof receipt.
-
-### 5. Excellence state
-File: `machine/excellence-state.json`
-
-- Leave `DISCOVERED` until real proof exists.
-- On elevation: follow Helix promotion policy (AUTHORITY_BOUND + PROJECTION_TRUTH_CLOSED for PROMOTED).
-
-### 6. README honesty
-- Keep non-affiliation block.
-- Document exact current boundary (what works / what does not).
-
-## Suggested algorithm sketch
-
-```text
-input → validate schema → check authority/budget/freshness
-      → compute decision (allow | refuse)
-      → emit receipt {decision, reasons[], digest, metrics}
-```
-
-## Definition of done (for the filling AI)
-
-- [ ] `python -m pytest -q` passes with **real** behavioral tests (not skip-all)
-- [ ] `python scripts/operate.py` prints a JSON receipt with decision + digest
-- [ ] Refuse path covered
-- [ ] No company affiliation language outside the explicit non-affiliation disclaimer
-- [ ] `DEV_UP_INSTRUCTIONS.md` can be marked COMPLETED with date + commit in a short receipt note at bottom
-
-## Out of scope
-
-- Cloud deploy, customer pilots, proprietary Cognition APIs
-- Multi-repo monorepos, secret material, personal data
-- Claiming “production-ready” without operate + tests + proof receipt
-
----
-*Scaffold only. Implementation is the next agent’s job.*
+No Cognition affiliation, proprietary access, production deployment, customer impact, or company partnership is claimed. The next useful depth step is binding checkpoint digests to real worktree/container snapshots and execution receipts, not adding another abstract governance layer.
