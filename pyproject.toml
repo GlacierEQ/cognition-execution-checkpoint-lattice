@@ -4,14 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cognition-execution-checkpoint-lattice"
-version = "0.2.0"
-description = "Content-addressed long-horizon execution checkpoint lattice with real worktree capture and bounded recovery"
+version = "0.3.0"
+description = "Persistent content-addressed execution checkpoints with self-contained materialization and proven recovery"
 requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
 execution-checkpoint-lattice = "checkpoint_lattice_cli:main"
 execution-checkpoint-capture = "checkpoint_capture_cli:main"
+execution-checkpoint-store = "checkpoint_store_cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -19,9 +20,14 @@ py-modules = [
   "execution_checkpoint_lattice",
   "checkpoint_lattice_cli",
   "worktree_snapshot",
+  "workspace_archive",
   "execution_receipt",
   "checkpoint_capture",
   "checkpoint_capture_cli",
+  "checkpoint_store",
+  "checkpoint_materializer",
+  "recovery_executor",
+  "checkpoint_store_cli",
   "promotion_authority"
 ]
 
